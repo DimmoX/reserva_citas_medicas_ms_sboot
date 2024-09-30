@@ -16,10 +16,10 @@ RUN mvn clean package
 
 # contenedor de producción
 FROM eclipse-temurin:21-jdk
-# Se copia el conbtendor temporal y se define donde dejar el jar generado
+# Se copia el contendor temporal y se define donde dejar el jar generado
 COPY --from=buildstage /app/target/*.jar /app/licencias_medicas.jar
+# Se copia el wallet al nuevo contenedor
+COPY --from=buildstage /app/wallet /app/wallet
 
-# Se copia nuevamente Wallet para que el contenedor de producción pueda acceder a la base de datos
-COPY Wallet_QXL9P21826DZWM8E /app/wallet
 # Ejecución del microservicio
 ENTRYPOINT ["java", "-jar", "/app/licencias_medicas.jar"]
