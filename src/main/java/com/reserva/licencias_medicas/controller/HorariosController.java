@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.reserva.licencias_medicas.dto.HorariosDTO;
 import com.reserva.licencias_medicas.model.HorariosModel;
+import com.reserva.licencias_medicas.model.MedicosModel;
 import com.reserva.licencias_medicas.services.horarios.HorariosService;
 
 @RestController
@@ -42,16 +43,22 @@ public class HorariosController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         logger.info("GET: /horarios -> Horarios encontrados: {}", horarios.size());
-        
-        List<EntityModel<HorariosModel>> horariosResources = horarios.stream()
-            .map(horario -> {
-                EntityModel<HorariosModel> resource = EntityModel.of(horario);
-                resource.add(linkTo(methodOn(HorariosController.class).getHorarioById(horario.getId())).withSelfRel());
-                return resource;
-            })
-            .collect(Collectors.toList());
 
-        return new ResponseEntity<>(horariosResources, HttpStatus.OK);
+        List<EntityModel<HorariosModel>> horariosModel = horarios.stream()
+                .map(horario -> {
+                    MedicosModel medico = horario.getIdMedico();
+                    medico.add(linkTo(methodOn(MedicosController.class)
+                            .getMedicobyId(medico.getId())).withSelfRel());
+
+                    EntityModel<HorariosModel> hmodel = EntityModel.of(horario);
+                    hmodel.add(linkTo(methodOn(HorariosController.class)
+                            .getHorarioById(horario.getId())).withSelfRel());
+
+                    return hmodel;
+                })
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(horariosModel, HttpStatus.OK);
     }
 
     @GetMapping(path = "/{id}")

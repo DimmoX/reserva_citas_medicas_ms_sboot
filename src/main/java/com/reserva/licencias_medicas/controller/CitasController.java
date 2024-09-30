@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.reserva.licencias_medicas.dto.CitasDTO;
 import com.reserva.licencias_medicas.model.CitasModel;
+import com.reserva.licencias_medicas.model.MedicosModel;
+import com.reserva.licencias_medicas.model.PacientesModel;
 import com.reserva.licencias_medicas.services.citas.CitasService;
 
 /**
@@ -48,9 +50,15 @@ public class CitasController {
         }
         List<EntityModel<CitasModel>> citasResources = citas.stream()
             .map(cita -> {
-                EntityModel<CitasModel> resource = EntityModel.of(cita);
-                resource.add(linkTo(methodOn(CitasController.class).getCitabyId(cita.getId())).withSelfRel());
-                return resource;
+                MedicosModel medico = cita.getIdMedico();
+                medico.add(linkTo(methodOn(MedicosController.class).getMedicobyId(cita.getIdMedico().getId())).withSelfRel());
+
+                PacientesModel paciente = cita.getIdPaciente();
+                paciente.add(linkTo(methodOn(PacientesController.class).getPacientebyId(cita.getIdPaciente().getId())).withSelfRel());
+
+                cita.add(linkTo(methodOn(CitasController.class).getCitabyId(cita.getId())).withSelfRel());
+                
+                return EntityModel.of(cita);
             })
             .collect(Collectors.toList());
 
