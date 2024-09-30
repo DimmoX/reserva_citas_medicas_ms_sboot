@@ -1,10 +1,16 @@
 package com.reserva.licencias_medicas.model;
 
+import java.util.List;
+
+import org.springframework.hateoas.RepresentationModel;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,7 +19,7 @@ import jakarta.validation.constraints.NotNull;
  */
 @Entity
 @Table(name = "medicos")
-public class MedicosModel {
+public class MedicosModel extends RepresentationModel<MedicosModel>{
 
     //** Atributos
     @Id
@@ -32,6 +38,12 @@ public class MedicosModel {
     @Column(name = "especialidad")
     @NotNull
     private String especialidad;
+
+    @OneToMany(mappedBy = "idMedico", cascade = CascadeType.REMOVE)
+    private List<CitasModel> citas;
+
+    @OneToMany(mappedBy = "idMedico", cascade = CascadeType.REMOVE)
+    private List<HorariosModel> horarios;
 
     //** Getters y Setters
     public Long getId() {

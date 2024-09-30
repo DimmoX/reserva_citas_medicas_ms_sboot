@@ -3,6 +3,8 @@ package com.reserva.licencias_medicas.model;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import jakarta.persistence.CollectionTable;
@@ -23,7 +25,7 @@ import jakarta.validation.constraints.Pattern;
  */
 @Entity
 @Table(name = "horarios")
-public class HorariosModel {
+public class HorariosModel extends RepresentationModel<HorariosModel>{
 
     //** Atributos
     @Id

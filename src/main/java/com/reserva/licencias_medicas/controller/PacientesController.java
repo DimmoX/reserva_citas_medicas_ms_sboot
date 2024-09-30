@@ -1,11 +1,16 @@
 package com.reserva.licencias_medicas.controller;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,14 +38,22 @@ public class PacientesController {
     private PacientesService pacientesService;
 
     @GetMapping
-    public ResponseEntity<List<PacientesModel>> getPacientes(){
+    public ResponseEntity<CollectionModel<EntityModel<PacientesModel>>> getPacientes() {
         logger.info("GET: /pacientes -> Se obtienen todos los pacientes");
         List<PacientesModel> pacientes = pacientesService.getPacientes();
-        if( pacientes.isEmpty() ){
+
+        if (pacientes.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        logger.info("GET: /pacientes -> pacientes encontrados: {}", pacientes.size());
-        return new ResponseEntity<>(pacientes, HttpStatus.OK);
+
+        List<EntityModel<PacientesModel>> pacientesModel = pacientes.stream()
+                .map(paciente -> EntityModel.of(paciente,
+                        linkTo(methodOn(PacientesController.class).getPacientebyId(paciente.getId())).withSelfRel(),
+                        linkTo(methodOn(PacientesController.class).getPacientes()).withRel("pacientes")))
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(CollectionModel.of(pacientesModel,
+                linkTo(methodOn(PacientesController.class).getPacientes()).withSelfRel()), HttpStatus.OK);
     }
 
     /**
@@ -48,15 +61,20 @@ public class PacientesController {
      * @param id
      */
     @GetMapping(path = "/{id}")
-    public ResponseEntity<PacientesModel> getPacientebyId(@PathVariable Long id) {
+    public ResponseEntity<EntityModel<PacientesModel>> getPacientebyId(@PathVariable Long id) {
         logger.info("GET: /pacientes/{} -> Obtener paciente", id);
         Optional<PacientesModel> paciente = pacientesService.getPacienteById(id);
+
         if (!paciente.isPresent()) {
-            logger.error("GET: /pacientes/{} -> paciente no encontrado", id);
+            logger.error("GET: /pacientes/{} -> Paciente no encontrado", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        logger.info("GET: /pacientes/{} -> paciente encontrado", id);
-        return new ResponseEntity<>(paciente.get(), HttpStatus.OK);
+
+        EntityModel<PacientesModel> resource = EntityModel.of(paciente.get(),
+                linkTo(methodOn(PacientesController.class).getPacientebyId(id)).withSelfRel(),
+                linkTo(methodOn(PacientesController.class).getPacientes()).withRel("pacientes"));
+
+        return new ResponseEntity<>(resource, HttpStatus.OK);
     }
 
     /**
@@ -64,11 +82,15 @@ public class PacientesController {
      * @param paciente
      */
     @PostMapping
-    public ResponseEntity<PacientesModel> createPaciente(@RequestBody PacientesModel paciente) {
+    public ResponseEntity<EntityModel<PacientesModel>> createPaciente(@RequestBody PacientesModel paciente) {
         logger.info("POST: /pacientes -> Crear nuevo paciente");
         PacientesModel pacienteModel = pacientesService.createPaciente(paciente);
-        logger.info("POST: /pacientes -> paciente creado", pacienteModel.getId());
-        return new ResponseEntity<>(pacienteModel, HttpStatus.CREATED);
+
+        EntityModel<PacientesModel> resource = EntityModel.of(pacienteModel,
+                linkTo(methodOn(PacientesController.class).getPacientebyId(pacienteModel.getId())).withSelfRel(),
+                linkTo(methodOn(PacientesController.class).getPacientes()).withRel("pacientes"));
+
+        return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
 
     /**
@@ -77,17 +99,24 @@ public class PacientesController {
      * @param paciente
      */
     @PutMapping(path = "/{id}")
-    public ResponseEntity<PacientesModel> updatePaciente(@PathVariable Long id, @RequestBody PacientesModel paciente) {
+    public ResponseEntity<EntityModel<PacientesModel>> updatePaciente(@PathVariable Long id,
+            @RequestBody PacientesModel paciente) {
         logger.info("PUT: /pacientes/{} -> Actualizar paciente", id);
         Optional<PacientesModel> pacienteModel1 = pacientesService.getPacienteById(id);
+
         if (!pacienteModel1.isPresent()) {
-            logger.error("PUT: /pacientes/{} -> paciente no encontrado", id);
+            logger.error("PUT: /pacientes/{} -> Paciente no encontrado", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+
         paciente.setId(id);
         PacientesModel pacienteModel2 = pacientesService.updatePaciente(id, paciente);
-        logger.info("PUT: /pacientes/{} -> paciente actualizado", id);
-        return new ResponseEntity<>(pacienteModel2, HttpStatus.OK);
+
+        EntityModel<PacientesModel> resource = EntityModel.of(pacienteModel2,
+                linkTo(methodOn(PacientesController.class).getPacientebyId(id)).withSelfRel(),
+                linkTo(methodOn(PacientesController.class).getPacientes()).withRel("pacientes"));
+
+        return new ResponseEntity<>(resource, HttpStatus.OK);
     }
 
     /**
@@ -98,13 +127,15 @@ public class PacientesController {
     public ResponseEntity<Void> deletePaciente(@PathVariable Long id) {
         logger.info("DELETE: /pacientes/{} -> Eliminar paciente", id);
         Optional<PacientesModel> pacienteModel = pacientesService.getPacienteById(id);
+
         if (!pacienteModel.isPresent()) {
-            logger.error("DELETE: /pacientes/{} -> paciente no encontrado", id);
+            logger.error("DELETE: /pacientes/{} -> Paciente no encontrado", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+
         pacientesService.deletePaciente(id);
-        logger.info("DELETE: /pacientes/{} -> paciente eliminado", id);
-        return new ResponseEntity<>(HttpStatus.OK);
+        logger.info("DELETE: /pacientes/{} -> Paciente eliminado", id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
 }

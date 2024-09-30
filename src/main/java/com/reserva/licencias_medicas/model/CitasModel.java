@@ -2,6 +2,8 @@ package com.reserva.licencias_medicas.model;
 
 import java.time.LocalDate;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import jakarta.persistence.Column;
@@ -21,7 +23,7 @@ import jakarta.validation.constraints.Pattern;
  */
 @Entity
 @Table(name = "citas")
-public class CitasModel {
+public class CitasModel extends RepresentationModel<CitasModel>{
     //** Atributos
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

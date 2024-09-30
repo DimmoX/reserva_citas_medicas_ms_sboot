@@ -1,12 +1,16 @@
 package com.reserva.licencias_medicas.controller;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,62 +35,84 @@ public class HorariosController {
     private HorariosService horariosService;
 
     @GetMapping
-    public ResponseEntity<List<HorariosModel>> getEnvios(){
-        logger.info("GET: /horarios -> Se obtienen todos los envios");
+    public ResponseEntity<List<EntityModel<HorariosModel>>> getHorarios() {
+        logger.info("GET: /horarios -> Se obtienen todos los horarios");
         List<HorariosModel> horarios = horariosService.getHorarios();
-        if( horarios.isEmpty() ){
+        if (horarios.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        logger.info("GET: /horarios -> horarios encontrados: {}", horarios.size());
-        return new ResponseEntity<>(horarios, HttpStatus.OK);
+        logger.info("GET: /horarios -> Horarios encontrados: {}", horarios.size());
+        
+        List<EntityModel<HorariosModel>> horariosResources = horarios.stream()
+            .map(horario -> {
+                EntityModel<HorariosModel> resource = EntityModel.of(horario);
+                resource.add(linkTo(methodOn(HorariosController.class).getHorarioById(horario.getId())).withSelfRel());
+                return resource;
+            })
+            .collect(Collectors.toList());
+
+        return new ResponseEntity<>(horariosResources, HttpStatus.OK);
     }
 
     @GetMapping(path = "/{id}")
-    public ResponseEntity<HorariosModel> getEnvioById(@PathVariable Long id) {
-        logger.info("GET: /horarios/{} -> Obtener horarios", id);
+    public ResponseEntity<EntityModel<HorariosModel>> getHorarioById(@PathVariable Long id) {
+        logger.info("GET: /horarios/{} -> Obtener horario", id);
         Optional<HorariosModel> horario = horariosService.getHorarioById(id);
         if (!horario.isPresent()) {
             logger.error("GET: /horarios/{} -> Horario no encontrado", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        logger.info("GET: /horarios/{} -> Envio encontrado", id);
-        return new ResponseEntity<>(horario.get(), HttpStatus.OK);
+        logger.info("GET: /horarios/{} -> Horario encontrado", id);
+
+        EntityModel<HorariosModel> resource = EntityModel.of(horario.get());
+        resource.add(linkTo(methodOn(HorariosController.class).getHorarioById(id)).withSelfRel());
+        resource.add(linkTo(methodOn(HorariosController.class).getHorarios()).withRel("all-horarios"));
+
+        return new ResponseEntity<>(resource, HttpStatus.OK);
     }
 
-     @PostMapping
-    public ResponseEntity<HorariosModel> createHorario(@RequestBody Map<String, Object> horarioData) {
+    @PostMapping
+    public ResponseEntity<EntityModel<HorariosModel>> createHorario(@RequestBody Map<String, Object> horarioData) {
+        logger.info("POST: /horarios -> Crear nuevo horario");
         HorariosModel newHorario = horariosService.createHorario(horarioData);
-        return new ResponseEntity<>(newHorario, HttpStatus.CREATED);
+
+        EntityModel<HorariosModel> resource = EntityModel.of(newHorario);
+        resource.add(linkTo(methodOn(HorariosController.class).getHorarioById(newHorario.getId())).withSelfRel());
+        resource.add(linkTo(methodOn(HorariosController.class).getHorarios()).withRel("all-horarios"));
+
+        return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<HorariosModel> updateHorario(@PathVariable Long id, @RequestBody HorariosDTO horarioUpdateDTO) {
+    public ResponseEntity<EntityModel<HorariosModel>> updateHorario(@PathVariable Long id,
+            @RequestBody HorariosDTO horarioUpdateDTO) {
         logger.info("PUT: /horarios/{} -> Actualizando horario", id);
-        Optional<HorariosModel> h = horariosService.getHorarioById(id);
-
-        if (!h.isPresent()) {
-            logger.error("PUT: /horarios/{} -> horario no encontrado", id);
+        Optional<HorariosModel> horarioExistente = horariosService.getHorarioById(id);
+        if (!horarioExistente.isPresent()) {
+            logger.error("PUT: /horarios/{} -> Horario no encontrado", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+        logger.info("PUT: /horarios/{} -> Horario encontrado", id);
 
-        logger.info("PUT: /horarios/{} -> horario encontrado", id);
-
-        // Llamar al servicio para actualizar el horario, pasando el DTO
         HorariosModel updatedHorario = horariosService.updateHorario(id, horarioUpdateDTO);
 
-        return new ResponseEntity<>(updatedHorario, HttpStatus.OK);
+        EntityModel<HorariosModel> resource = EntityModel.of(updatedHorario);
+        resource.add(linkTo(methodOn(HorariosController.class).getHorarioById(id)).withSelfRel());
+        resource.add(linkTo(methodOn(HorariosController.class).getHorarios()).withRel("all-horarios"));
+
+        return new ResponseEntity<>(resource, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEnvio(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteHorario(@PathVariable Long id) {
         logger.info("DELETE: /horarios/{} -> Eliminando horario", id);
         Optional<HorariosModel> horario = horariosService.getHorarioById(id);
         if (!horario.isPresent()) {
-            logger.error("DELETE: /horarios/{} -> horario no encontrado", id);
+            logger.error("DELETE: /horarios/{} -> Horario no encontrado", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         horariosService.deleteHorario(id);
-        logger.info("DELETE: /horarios/{} -> horario encontrado", id);
+        logger.info("DELETE: /horarios/{} -> Horario eliminado", id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

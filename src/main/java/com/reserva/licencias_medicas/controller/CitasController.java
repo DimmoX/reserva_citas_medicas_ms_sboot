@@ -1,11 +1,15 @@
 package com.reserva.licencias_medicas.controller;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -36,14 +40,21 @@ public class CitasController {
      * Obtiene todas las citas
      */
     @GetMapping
-    public ResponseEntity<List<CitasModel>> getCitas(){
+    public ResponseEntity<List<EntityModel<CitasModel>>> getCitas() {
         logger.info("GET: /citas -> Se obtienen todas las citas");
         List<CitasModel> citas = citasService.getCitas();
-        if( citas.isEmpty() ){
+        if (citas.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        logger.info("GET: /citas -> citas encontrados: {}", citas.size());
-        return new ResponseEntity<>(citas, HttpStatus.OK);
+        List<EntityModel<CitasModel>> citasResources = citas.stream()
+            .map(cita -> {
+                EntityModel<CitasModel> resource = EntityModel.of(cita);
+                resource.add(linkTo(methodOn(CitasController.class).getCitabyId(cita.getId())).withSelfRel());
+                return resource;
+            })
+            .collect(Collectors.toList());
+
+        return new ResponseEntity<>(citasResources, HttpStatus.OK);
     }
 
     /**
@@ -51,15 +62,19 @@ public class CitasController {
      * @param id
      */
     @GetMapping(path = "/{id}")
-    public ResponseEntity<CitasModel> getCitabyId(@PathVariable Long id) {
+    public ResponseEntity<EntityModel<CitasModel>> getCitabyId(@PathVariable Long id) {
         logger.info("GET: /citas/{} -> Obtener cita", id);
         Optional<CitasModel> cita = citasService.getCitaById(id);
         if (!cita.isPresent()) {
             logger.error("GET: /citas/{} -> cita no encontrada", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        logger.info("GET: /citas/{} -> cita encontrado", id);
-        return new ResponseEntity<>(cita.get(), HttpStatus.OK);
+
+        EntityModel<CitasModel> resource = EntityModel.of(cita.get());
+        resource.add(linkTo(methodOn(CitasController.class).getCitabyId(id)).withSelfRel());
+        resource.add(linkTo(methodOn(CitasController.class).getCitas()).withRel("all-citas"));
+
+        return new ResponseEntity<>(resource, HttpStatus.OK);
     }
 
     /**
@@ -68,11 +83,16 @@ public class CitasController {
      * @see CitasDTO
      */
     @PostMapping
-    public ResponseEntity<CitasModel> createCita(@RequestBody CitasDTO citaDTO) {
+    public ResponseEntity<EntityModel<CitasModel>> createCita(@RequestBody CitasDTO citaDTO) {
         logger.info("POST: /citas -> Crear nueva cita");
-        CitasModel nuevaCita = citasService.createCita(citaDTO.getFechaCita(), citaDTO.getHoraCita(), citaDTO.getIdMedico(), citaDTO.getIdPaciente());
+        CitasModel nuevaCita = citasService.createCita(citaDTO.getFechaCita(), citaDTO.getHoraCita(),
+                citaDTO.getIdMedico(), citaDTO.getIdPaciente());
 
-        return new ResponseEntity<>(nuevaCita, HttpStatus.CREATED);
+        EntityModel<CitasModel> resource = EntityModel.of(nuevaCita);
+        resource.add(linkTo(methodOn(CitasController.class).getCitabyId(nuevaCita.getId())).withSelfRel());
+        resource.add(linkTo(methodOn(CitasController.class).getCitas()).withRel("all-citas"));
+
+        return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
 
     /**
@@ -81,16 +101,19 @@ public class CitasController {
      * @param citaDTO
      */
     @PutMapping("/{id}")
-    public ResponseEntity<CitasDTO> updateCita(@PathVariable Long id, @RequestBody CitasDTO citaDTO) {
+    public ResponseEntity<EntityModel<CitasDTO>> updateCita(@PathVariable Long id, @RequestBody CitasDTO citaDTO) {
         logger.info("PUT: /citas/{} -> Actualizando cita", id);
         Optional<CitasModel> citaExistente = citasService.getCitaById(id);
         if (!citaExistente.isPresent()) {
             logger.error("PUT: /citas/{} -> cita no encontrada", id);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        logger.info("PUT: /citas/{} -> cita encontrada", id);
+
         CitasDTO citaActualizada = citasService.updateCita(id, citaDTO);
-        return new ResponseEntity<>(citaActualizada, HttpStatus.OK);
+        EntityModel<CitasDTO> resource = EntityModel.of(citaActualizada);
+        resource.add(linkTo(methodOn(CitasController.class).getCitabyId(id)).withSelfRel());
+
+        return new ResponseEntity<>(resource, HttpStatus.OK);
     }
 
     /**
@@ -107,7 +130,7 @@ public class CitasController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         citasService.deleteCita(id);
-        logger.info("DELETE: /citas/{} -> cita encontrada", id);
+        logger.info("DELETE: /citas/{} -> cita eliminada", id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
