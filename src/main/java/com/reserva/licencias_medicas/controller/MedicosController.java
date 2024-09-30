@@ -87,10 +87,10 @@ public class MedicosController {
     @PostMapping
     public ResponseEntity<EntityModel<MedicosModel>> createMedico(@RequestBody MedicosModel medico) {
         logger.info("POST: /medicos -> Crear nuevo médico");
-        MedicosModel m = medicosService.createMedico(medico);
+        MedicosModel medicoModel = medicosService.createMedico(medico);
 
-        EntityModel<MedicosModel> resource = EntityModel.of(m,
-                linkTo(methodOn(MedicosController.class).getMedicobyId(m.getId())).withSelfRel(),
+        EntityModel<MedicosModel> resource = EntityModel.of(medicoModel,
+                linkTo(methodOn(MedicosController.class).getMedicobyId(medicoModel.getId())).withSelfRel(),
                 linkTo(methodOn(MedicosController.class).getMedicos()).withRel("medicos"));
 
         return new ResponseEntity<>(resource, HttpStatus.CREATED);

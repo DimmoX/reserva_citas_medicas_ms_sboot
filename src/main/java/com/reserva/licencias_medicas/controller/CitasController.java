@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,27 +43,27 @@ public class CitasController {
      * Obtiene todas las citas
      */
     @GetMapping
-    public ResponseEntity<List<EntityModel<CitasModel>>> getCitas() {
+    public ResponseEntity<CollectionModel<EntityModel<CitasModel>>> getCitas() {
         logger.info("GET: /citas -> Se obtienen todas las citas");
-        List<CitasModel> citas = citasService.getCitas();
-        if (citas.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        List<EntityModel<CitasModel>> citasResources = citas.stream()
+        List<EntityModel<CitasModel>> citas = citasService.getCitas().stream()
             .map(cita -> {
                 MedicosModel medico = cita.getIdMedico();
-                medico.add(linkTo(methodOn(MedicosController.class).getMedicobyId(cita.getIdMedico().getId())).withSelfRel());
-
                 PacientesModel paciente = cita.getIdPaciente();
-                paciente.add(linkTo(methodOn(PacientesController.class).getPacientebyId(cita.getIdPaciente().getId())).withSelfRel());
 
-                cita.add(linkTo(methodOn(CitasController.class).getCitabyId(cita.getId())).withSelfRel());
-                
-                return EntityModel.of(cita);
+                return EntityModel.of(cita,
+                        linkTo(methodOn(CitasController.class).getCitabyId(cita.getId())).withRel("cita"),
+                        linkTo(methodOn(CitasController.class).getCitas()).withRel("citas"),
+                        linkTo(methodOn(MedicosController.class).getMedicobyId(medico.getId())).withRel("medico"),
+                        linkTo(methodOn(MedicosController.class).getMedicos()).withRel("medicos"),
+                        linkTo(methodOn(PacientesController.class).getPacientebyId(paciente.getId())).withRel("paciente"),
+                        linkTo(methodOn(PacientesController.class).getPacientes()).withRel("pacientes")
+                );
             })
             .collect(Collectors.toList());
 
-        return new ResponseEntity<>(citasResources, HttpStatus.OK);
+        return new ResponseEntity<>(CollectionModel.of(
+                citas,
+                linkTo(methodOn(CitasController.class).getCitas()).withSelfRel()), HttpStatus.OK);
     }
 
     /**
@@ -78,11 +79,15 @@ public class CitasController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        EntityModel<CitasModel> resource = EntityModel.of(cita.get());
-        resource.add(linkTo(methodOn(CitasController.class).getCitabyId(id)).withSelfRel());
-        resource.add(linkTo(methodOn(CitasController.class).getCitas()).withRel("all-citas"));
+        EntityModel<CitasModel> citas = EntityModel.of(cita.get());
+        citas.add(linkTo(methodOn(CitasController.class).getCitabyId(id)).withSelfRel());
+        citas.add(linkTo(methodOn(CitasController.class).getCitas()).withRel("citas"));
+        citas.add(linkTo(methodOn(MedicosController.class).getMedicobyId(cita.get().getIdMedico().getId())).withRel("medico"));
+        citas.add(linkTo(methodOn(MedicosController.class).getMedicos()).withRel("medicos"));
+        citas.add(linkTo(methodOn(PacientesController.class).getPacientebyId(cita.get().getIdPaciente().getId())).withRel("paciente"));
+        citas.add(linkTo(methodOn(PacientesController.class).getPacientes()).withRel("pacientes"));
 
-        return new ResponseEntity<>(resource, HttpStatus.OK);
+        return new ResponseEntity<>(citas, HttpStatus.OK);
     }
 
     /**
@@ -96,11 +101,15 @@ public class CitasController {
         CitasModel nuevaCita = citasService.createCita(citaDTO.getFechaCita(), citaDTO.getHoraCita(),
                 citaDTO.getIdMedico(), citaDTO.getIdPaciente());
 
-        EntityModel<CitasModel> resource = EntityModel.of(nuevaCita);
-        resource.add(linkTo(methodOn(CitasController.class).getCitabyId(nuevaCita.getId())).withSelfRel());
-        resource.add(linkTo(methodOn(CitasController.class).getCitas()).withRel("all-citas"));
+        EntityModel<CitasModel> citas = EntityModel.of(nuevaCita);
+        citas.add(linkTo(methodOn(CitasController.class).getCitabyId(nuevaCita.getId())).withSelfRel());
+        citas.add(linkTo(methodOn(CitasController.class).getCitas()).withRel("citas"));
+        citas.add(linkTo(methodOn(MedicosController.class).getMedicobyId(nuevaCita.getIdMedico().getId())).withRel("medico"));
+        citas.add(linkTo(methodOn(MedicosController.class).getMedicos()).withRel("medicos"));
+        citas.add(linkTo(methodOn(PacientesController.class).getPacientebyId(nuevaCita.getIdPaciente().getId())).withRel("paciente"));
+        citas.add(linkTo(methodOn(PacientesController.class).getPacientes()).withRel("pacientes"));
 
-        return new ResponseEntity<>(resource, HttpStatus.CREATED);
+        return new ResponseEntity<>(citas, HttpStatus.CREATED);
     }
 
     /**
@@ -118,10 +127,15 @@ public class CitasController {
         }
 
         CitasDTO citaActualizada = citasService.updateCita(id, citaDTO);
-        EntityModel<CitasDTO> resource = EntityModel.of(citaActualizada);
-        resource.add(linkTo(methodOn(CitasController.class).getCitabyId(id)).withSelfRel());
+        EntityModel<CitasDTO> citas = EntityModel.of(citaActualizada);
+        citas.add(linkTo(methodOn(CitasController.class).getCitabyId(id)).withSelfRel());
+        citas.add(linkTo(methodOn(CitasController.class).getCitas()).withRel("citas"));
+        citas.add(linkTo(methodOn(MedicosController.class).getMedicobyId(citaActualizada.getIdMedico())).withRel("medico"));
+        citas.add(linkTo(methodOn(MedicosController.class).getMedicos()).withRel("medicos"));
+        citas.add(linkTo(methodOn(PacientesController.class).getPacientebyId(citaActualizada.getIdPaciente())).withRel("paciente"));
+        citas.add(linkTo(methodOn(PacientesController.class).getPacientes()).withRel("pacientes"));
 
-        return new ResponseEntity<>(resource, HttpStatus.OK);
+        return new ResponseEntity<>(citas, HttpStatus.OK);
     }
 
     /**
