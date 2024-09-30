@@ -74,14 +74,14 @@ public class MedicosServiceTest {
 
         assertNotNull(createdMedico);
 
-        // Verificar que el método save fue llamado
+        // Verificar que el método save se ejecuto
         verify(medicosRepositoryMock, times(1)).save(createdMedico);
     }
 
     @Test
     @DisplayName("Test Actualizar Médico")
     void testUpdateMedico() {
-         // Simular que el médico existe en la base de datos
+      
         when(medicosRepositoryMock.findById(1L)).thenReturn(Optional.of(medico));
         when(medicosRepositoryMock.save(any(MedicosModel.class))).thenReturn(medicoUpdate);
 
@@ -93,9 +93,9 @@ public class MedicosServiceTest {
         assertEquals(1L, result.getId());
         assertEquals("Juan", result.getNombre());
         assertEquals("Pérez", result.getApellido());
-        assertEquals("Neurología", result.getEspecialidad());  // Cambió la especialidad
+        assertEquals("Neurología", result.getEspecialidad());
 
-        // Verificar que los métodos findById y save fueron llamados
+        // Verificar que los métodos findById y save se ejecutarón
         verify(medicosRepositoryMock, times(1)).findById(1L);
         verify(medicosRepositoryMock, times(1)).save(medicoUpdate);
     }
