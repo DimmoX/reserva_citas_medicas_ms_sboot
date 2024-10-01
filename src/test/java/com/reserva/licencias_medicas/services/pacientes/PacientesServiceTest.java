@@ -36,7 +36,6 @@ public class PacientesServiceTest {
     public void configuracionInicial() {
 
         // ** Se inicialilza objeto model en cada test.
-        // ** Se inicialilza objeto model en cada test.
         MockitoAnnotations.openMocks(this);
 
         // Médico original antes de la actualización

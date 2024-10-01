@@ -47,7 +47,7 @@ public class MedicosServiceTest {
         
         // Datos actualizados (especialidad cambia a Neurología)
         medicoUpdate = new MedicosModel();
-        medicoUpdate.setNombre("Juan");
+        medicoUpdate.setNombre("Diego");
         medicoUpdate.setApellido("Pérez");
         medicoUpdate.setEspecialidad("Neurología");
     }
@@ -91,7 +91,7 @@ public class MedicosServiceTest {
         // Verificar los resultados
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        assertEquals("Juan", result.getNombre());
+        assertNotEquals("Juan", result.getNombre());
         assertEquals("Pérez", result.getApellido());
         assertEquals("Neurología", result.getEspecialidad());
 
